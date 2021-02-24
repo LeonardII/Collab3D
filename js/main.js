@@ -1,11 +1,18 @@
 
-let camera, controls, scene, renderer;
+let camera, controls, scene, renderer, rayCaster, cursor, markers, intersectionObjects;
+const mouse = new THREE.Vector2();
+
+const markerGeometry = new THREE.SphereGeometry( 10, 20, 20);
 
 init();
 //render(); // remove when using next line for animation loop (requestAnimationFrame)
 animate();
 
 function init() {
+
+        rayCaster = new THREE.Raycaster();
+        intersectionObjects = [];
+        markers = [];
 
         scene = new THREE.Scene();
         scene.background = new THREE.Color( 0xcccccc );
@@ -22,6 +29,9 @@ function init() {
         // controls
 
         controls = new THREE.OrbitControls( camera, renderer.domElement );
+        
+        document.addEventListener( 'mousemove', onDocumentMouseMove );
+        document.addEventListener( 'mousedown', onDocumentMouseDown );
 
         //controls.addEventListener( 'change', render ); // call this only in static scenes (i.e., if there is no animation loop)
 
@@ -53,8 +63,17 @@ function init() {
                 mesh.updateMatrix();
                 mesh.matrixAutoUpdate = false;
                 scene.add( mesh );
-
+                intersectionObjects.push(mesh);
         }
+        const planeGeometry = new THREE.PlaneGeometry( 10000, 10000 );
+        const plane = new THREE.Mesh( planeGeometry);
+        plane.rotateX( - Math.PI / 2);
+        scene.add(plane);
+        intersectionObjects.push(plane);
+
+        const cursorGeometry = new THREE.SphereGeometry( 5, 20, 20);
+        cursor = new THREE.Mesh( cursorGeometry, new THREE.MeshNormalMaterial() );
+        scene.add( cursor );
 
         // lights
 
@@ -91,14 +110,40 @@ function onWindowResize() {
 function animate() {
 
         requestAnimationFrame( animate );
-
+        
         controls.update(); // only required if controls.enableDamping = true, or if controls.autoRotate = true
 
         render();
+}
 
+function onDocumentMouseDown( event ) {
+        event.preventDefault();
+        let marker = new THREE.Mesh( markerGeometry, new THREE.MeshNormalMaterial() );
+        console.log("new marker at", cursor.position);
+        marker.position.set(cursor.position.x, cursor.position.y, cursor.position.z);
+        markers.push(marker);
+        scene.add( marker );
+        console.log(marker.position);
+}
+
+function onDocumentMouseMove( event ) {
+        event.preventDefault();
+        mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+        mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
 }
 
 function render() {
+
+        rayCaster.setFromCamera( mouse, camera );
+
+        const intersects = rayCaster.intersectObjects( intersectionObjects );
+        if (intersects[0] != cursor){
+                if ( intersects.length > 0 ) {
+                        cursor.position.copy(intersects[ 0 ].point);
+                } else {
+
+                }
+        }
 
         renderer.render( scene, camera );
 
