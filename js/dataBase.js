@@ -1,1 +1,2 @@
-r.table("points")
+r = require('rethinkdb')
+
